@@ -1,13 +1,42 @@
+import { NgIf, NgStyle } from '@angular/common';
 import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+
+interface SeatOccupant {
+  username: string;
+  name: string;
+}
+
+interface CurrentTooltip {
+  seat: string;
+  username: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-seat-selector',
   templateUrl: './seat-selector.component.html',
-  styleUrls: [],
+  styles: [
+    `
+      .tooltip {
+        position: absolute;
+        width: 200px;
+        background-color: white;
+        border: 1px solid #ccc;
+        padding: 8px;
+        z-index: 1000;
+      }
+    `,
+  ],
   standalone: true,
+  imports: [NgIf, NgStyle],
 })
 export class SeatSelectorComponent implements AfterViewInit {
   @ViewChild('seatCanvas') seatCanvas!: ElementRef<HTMLCanvasElement>;
+
+  public currentTooltip: CurrentTooltip | null = null;
+  public tooltipX: number = 0;
+  public tooltipY: number = 0;
+
   private ctx!: CanvasRenderingContext2D;
   private seats: any[] = [];
 
@@ -27,8 +56,15 @@ export class SeatSelectorComponent implements AfterViewInit {
   private maxSelections = 5;
   private maxNumberOfSeats = 20;
   private rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
-  private occupiedSeats = new Set(['a1', 'a2', 'b10', 'c5', 'd15']); // Example occupied seats
-  private reservedSeats = new Set(['a3', 'b1', 'b2', 'f20', 'j10']); // Example reserved seats
+  private occupiedSeats: Map<string, SeatOccupant> = new Map([
+    ['a1', { username: 'user1', name: 'User 1' }],
+    ['a2', { username: 'user2', name: 'User 2' }],
+    ['b3', { username: 'user3', name: 'User 3' }],
+    ['f21', { username: 'user4', name: 'User 4' }],
+    ['j11', { username: 'user5', name: 'User 5' }],
+  ]);
+  // Example occupied seats
+  private reservedSeats = new Set(['a3', 'b1', 'b2', 'f20', 'j10', 'a']); // Example reserved seats
 
   ngAfterViewInit(): void {
     this.ctx = this.seatCanvas.nativeElement.getContext(
@@ -55,6 +91,11 @@ export class SeatSelectorComponent implements AfterViewInit {
         if (this.occupiedSeats.has(seatId)) {
           seatStatus = 'occupied';
         } else if (this.reservedSeats.has(seatId)) {
+          seatStatus = 'reserved';
+        }
+
+        // Check if the whole row is reserved by checking if the row letter is in the Set(), i.e. ['a'] by it self
+        if (this.reservedSeats.has(row)) {
           seatStatus = 'reserved';
         }
 
@@ -180,6 +221,7 @@ export class SeatSelectorComponent implements AfterViewInit {
 
   onMouseDown(event: MouseEvent) {
     this.dragging = true;
+    this.hideTooltip();
     this.lastX = event.offsetX;
     this.lastY = event.offsetY;
 
@@ -195,13 +237,18 @@ export class SeatSelectorComponent implements AfterViewInit {
         x > seat.x &&
         x < seat.x + this.seatWidth &&
         y > seat.y &&
-        y < seat.y + this.seatHeight &&
-        seat.status === 'available'
+        y < seat.y + this.seatHeight
       ) {
-        if (this.selectedSeats.has(seat.id)) {
-          this.selectedSeats.delete(seat.id);
-        } else if (this.selectedSeats.size < this.maxSelections) {
-          this.selectedSeats.add(seat.id);
+        if (seat.status === 'available') {
+          if (this.selectedSeats.has(seat.id)) {
+            this.selectedSeats.delete(seat.id);
+          } else if (this.selectedSeats.size < this.maxSelections) {
+            this.selectedSeats.add(seat.id);
+          }
+        }
+        if (seat.status === 'occupied') {
+          const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
+          this.showTooltip(seat, x, y);
         }
         this.draw();
       }
@@ -229,5 +276,35 @@ export class SeatSelectorComponent implements AfterViewInit {
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
     this.scale = Math.max(1, Math.min(newScale, 2));
     this.draw();
+  }
+
+  showTooltip(seat: any, x: number, y: number) {
+    console.log(seat);
+    const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
+    console.log(occupant);
+    this.currentTooltip = {
+      seat: seat.id,
+      username: occupant.username,
+      name: occupant.name,
+    };
+
+    this.tooltipX = (seat.x + this.originX) * this.scale;
+    this.tooltipY = (seat.y + this.seatHeight + this.originY) * this.scale;
+
+    // Adjust the tooltip position to account for edges
+    const tooltipWidth = 200; // Assuming a fixed tooltip width
+    const canvasWidth = this.seatCanvas.nativeElement.width;
+
+    // Ensure tooltip does not go off the right edge of the canvas
+    if (this.tooltipX + tooltipWidth > canvasWidth) {
+      this.tooltipX -= tooltipWidth + 20; // Shift left by its width + some padding
+    }
+
+    this.tooltipX += 10; // Add some padding to the left
+    this.tooltipY += 10; // Add some padding to the bottom
+  }
+
+  hideTooltip() {
+    this.currentTooltip = null;
   }
 }

@@ -7,3 +7,13 @@
   (mouseup)="onMouseUp($event)"
   (mousewheel)="onMouseWheel($event)"
 ></canvas>
+<div
+  *ngIf="currentTooltip"
+  [ngStyle]="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+  class="tooltip"
+>
+  <button (click)="hideTooltip()">X</button>
+  <p>Sæde: {{ currentTooltip.seat }}</p>
+  <p>Brugernavn: {{ currentTooltip.username }}</p>
+  <p>Navn: {{ currentTooltip.name }}</p>
+</div>
