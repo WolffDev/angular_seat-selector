@@ -278,7 +278,6 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   showTooltip(seat: any) {
-    console.log(seat);
     const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
     console.log(occupant);
     this.currentTooltip = {
@@ -288,12 +287,14 @@ export class SeatSelectorComponent implements AfterViewInit {
     };
 
     const canvasRect = this.seatCanvas.nativeElement.getBoundingClientRect();
-    this.tooltipX = (seat.x + this.originX + canvasRect.left) * this.scale;
+    // Calculate the tooltip coordinates, making sure to apply both translation and scaling
+    this.tooltipX = (seat.x + this.originX) * this.scale + canvasRect.left;
     this.tooltipY =
-      (seat.y + this.seatHeight + this.originY + canvasRect.top) * this.scale;
+      (seat.y + this.seatHeight + this.originY) * this.scale + canvasRect.top;
 
-    this.tooltipX += 20;
-    this.tooltipY += 20;
+    // Adjust the tooltip position slightly away from the seat for better visibility
+    this.tooltipX += 20; // 20px offset for x coordinate
+    this.tooltipY += 20; // 20px offset for y coordinate
   }
 
   hideTooltip() {
