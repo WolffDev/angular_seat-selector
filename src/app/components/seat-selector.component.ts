@@ -1,4 +1,4 @@
-import { NgIf, NgStyle } from '@angular/common';
+import { CommonModule, NgIf, NgStyle } from '@angular/common';
 import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 
 interface SeatOccupant {
@@ -10,6 +10,13 @@ interface CurrentTooltip {
   seat: string;
   username: string;
   name: string;
+}
+
+interface Seat {
+  id: string;
+  x: number;
+  y: number;
+  status: string;
 }
 
 @Component({
@@ -28,7 +35,7 @@ interface CurrentTooltip {
     `,
   ],
   standalone: true,
-  imports: [NgIf, NgStyle],
+  imports: [CommonModule],
 })
 export class SeatSelectorComponent implements AfterViewInit {
   @ViewChild('seatCanvas') seatCanvas!: ElementRef<HTMLCanvasElement>;
@@ -36,6 +43,8 @@ export class SeatSelectorComponent implements AfterViewInit {
   public currentTooltip: CurrentTooltip | null = null;
   public tooltipX: number = 0;
   public tooltipY: number = 0;
+  public selectedSeats: Map<string, Seat> = new Map();
+  public maxSelections = 5;
 
   private ctx!: CanvasRenderingContext2D;
   private seats: any[] = [];
@@ -52,8 +61,6 @@ export class SeatSelectorComponent implements AfterViewInit {
   private dragging: boolean = false;
   private lastX!: number;
   private lastY!: number;
-  private selectedSeats: Set<string> = new Set();
-  private maxSelections = 5;
   private maxNumberOfSeats = 20;
   private rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
   private occupiedSeats: Map<string, SeatOccupant> = new Map([
@@ -239,11 +246,12 @@ export class SeatSelectorComponent implements AfterViewInit {
         y > seat.y &&
         y < seat.y + this.seatHeight
       ) {
+        console.log(seat);
         if (seat.status === 'available') {
           if (this.selectedSeats.has(seat.id)) {
             this.selectedSeats.delete(seat.id);
           } else if (this.selectedSeats.size < this.maxSelections) {
-            this.selectedSeats.add(seat.id);
+            this.selectedSeats.set(seat.id, seat);
           }
         }
         if (seat.status === 'occupied') {
