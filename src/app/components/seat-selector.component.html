@@ -1,19 +1,22 @@
-<canvas
-  #seatCanvas
-  width="1200"
-  height="800"
-  (mousedown)="onMouseDown($event)"
-  (mousemove)="onMouseMove($event)"
-  (mouseup)="onMouseUp($event)"
-  (mousewheel)="onMouseWheel($event)"
-></canvas>
-<div
-  *ngIf="currentTooltip"
-  [ngStyle]="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
-  class="tooltip"
->
-  <button (click)="hideTooltip()">X</button>
-  <p>Sæde: {{ currentTooltip.seat }}</p>
-  <p>Brugernavn: {{ currentTooltip.username }}</p>
-  <p>Navn: {{ currentTooltip.name }}</p>
+<div class="flex items-center justify-center relative">
+  <canvas
+    class="border border-black shadow-md m-4 p-2"
+    #seatCanvas
+    width="800"
+    height="600"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp($event)"
+    (mousewheel)="onMouseWheel($event)"
+  ></canvas>
+  <div
+    *ngIf="currentTooltip"
+    [ngStyle]="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+    class="absolute w-[200px] border border-black bg-white p-2 shadow-md z-50"
+  >
+    <button (click)="hideTooltip()">X</button>
+    <p>Sæde: {{ currentTooltip.seat }}</p>
+    <p>Brugernavn: {{ currentTooltip.username }}</p>
+    <p>Navn: {{ currentTooltip.name }}</p>
+  </div>
 </div>

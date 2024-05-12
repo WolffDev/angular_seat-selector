@@ -47,8 +47,8 @@ export class SeatSelectorComponent implements AfterViewInit {
   private verticalPadding: number = 80; // padding from the top and bottom
 
   private scale: number = 1.0;
-  private originX: number = 0;
-  private originY: number = 0;
+  private originX: number = 60;
+  private originY: number = 60;
   private dragging: boolean = false;
   private lastX!: number;
   private lastY!: number;
@@ -64,7 +64,7 @@ export class SeatSelectorComponent implements AfterViewInit {
     ['j11', { username: 'user5', name: 'User 5' }],
   ]);
   // Example occupied seats
-  private reservedSeats = new Set(['a3', 'b1', 'b2', 'f20', 'j10', 'a']); // Example reserved seats
+  private reservedSeats = new Set(['a3', 'b1', 'b2', 'f20', 'j10', 'a', 'g']); // Example reserved seats
 
   ngAfterViewInit(): void {
     this.ctx = this.seatCanvas.nativeElement.getContext(
@@ -247,8 +247,7 @@ export class SeatSelectorComponent implements AfterViewInit {
           }
         }
         if (seat.status === 'occupied') {
-          const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
-          this.showTooltip(seat, x, y);
+          this.showTooltip(seat);
         }
         this.draw();
       }
@@ -278,7 +277,7 @@ export class SeatSelectorComponent implements AfterViewInit {
     this.draw();
   }
 
-  showTooltip(seat: any, x: number, y: number) {
+  showTooltip(seat: any) {
     console.log(seat);
     const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
     console.log(occupant);
@@ -288,20 +287,13 @@ export class SeatSelectorComponent implements AfterViewInit {
       name: occupant.name,
     };
 
-    this.tooltipX = (seat.x + this.originX) * this.scale;
-    this.tooltipY = (seat.y + this.seatHeight + this.originY) * this.scale;
+    const canvasRect = this.seatCanvas.nativeElement.getBoundingClientRect();
+    this.tooltipX = (seat.x + this.originX + canvasRect.left) * this.scale;
+    this.tooltipY =
+      (seat.y + this.seatHeight + this.originY + canvasRect.top) * this.scale;
 
-    // Adjust the tooltip position to account for edges
-    const tooltipWidth = 200; // Assuming a fixed tooltip width
-    const canvasWidth = this.seatCanvas.nativeElement.width;
-
-    // Ensure tooltip does not go off the right edge of the canvas
-    if (this.tooltipX + tooltipWidth > canvasWidth) {
-      this.tooltipX -= tooltipWidth + 20; // Shift left by its width + some padding
-    }
-
-    this.tooltipX += 10; // Add some padding to the left
-    this.tooltipY += 10; // Add some padding to the bottom
+    this.tooltipX += 20;
+    this.tooltipY += 20;
   }
 
   hideTooltip() {
