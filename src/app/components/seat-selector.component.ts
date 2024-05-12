@@ -10,6 +10,13 @@ export class SeatSelectorComponent implements AfterViewInit {
   @ViewChild('seatCanvas') seatCanvas!: ElementRef<HTMLCanvasElement>;
   private ctx!: CanvasRenderingContext2D;
   private seats: any[] = [];
+
+  private seatWidth: number = 30; // default seat width
+  private seatHeight: number = 30; // default seat height
+  private rowSpacing: number = 40; // default vertical spacing between rows
+  private walkwaySpacing: number = 20; // additional space after every two rows
+  private verticalPadding: number = 80; // padding from the top and bottom
+
   private scale: number = 1.0;
   private originX: number = 0;
   private originY: number = 0;
@@ -32,7 +39,16 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   initSeats() {
+    let additionalY = 0;
     this.rows.forEach((row, index) => {
+      let yPosition = index * this.rowSpacing + additionalY;
+
+      // Correctly applying walkway space after every two rows
+      if (index > 0 && index % 2 === 1) {
+        // Apply after every second row
+        additionalY += this.walkwaySpacing;
+      }
+
       for (let i = 1; i <= this.maxNumberOfSeats; i++) {
         const seatId = `${row}${i}`;
         let seatStatus = 'available';
@@ -41,10 +57,17 @@ export class SeatSelectorComponent implements AfterViewInit {
         } else if (this.reservedSeats.has(seatId)) {
           seatStatus = 'reserved';
         }
+
+        // Determine the X coordinate with an added gap after the 10th seat
+        let xPosition = (i - 1) * this.seatWidth;
+        if (i > 10) {
+          xPosition += this.verticalPadding; // Adding an 80 pixel gap after the 10th seat
+        }
+
         this.seats.push({
           id: seatId,
-          x: i <= 10 ? i * 40 : (i - 10) * 40 + 420,
-          y: index * 40,
+          x: xPosition,
+          y: yPosition,
           status: seatStatus,
         });
       }
@@ -62,14 +85,12 @@ export class SeatSelectorComponent implements AfterViewInit {
     this.ctx.scale(this.scale, this.scale);
     this.ctx.translate(this.originX, this.originY);
 
-    // Loop through each seat to apply styles and draw
     this.seats.forEach((seat) => {
-      // Set up gradients for seat fill
       const gradient = this.ctx.createLinearGradient(
         seat.x,
         seat.y,
         seat.x,
-        seat.y + 30
+        seat.y + this.seatHeight
       );
       if (this.selectedSeats.has(seat.id)) {
         gradient.addColorStop(0, 'orange');
@@ -78,45 +99,45 @@ export class SeatSelectorComponent implements AfterViewInit {
         gradient.addColorStop(0, 'darkred');
         gradient.addColorStop(1, 'red');
       } else if (seat.status === 'reserved') {
-        gradient.addColorStop(0, 'darkblue');
-        gradient.addColorStop(1, 'blue');
+        gradient.addColorStop(0, 'darkgrey');
+        gradient.addColorStop(1, 'grey');
       } else {
         gradient.addColorStop(0, 'darkgreen');
         gradient.addColorStop(1, 'green');
       }
 
       // Draw the seat with a rounded rectangle
-      this.roundRect(this.ctx, seat.x, seat.y, 30, 30, 5, true, true, gradient);
+      this.roundRect(
+        this.ctx,
+        seat.x,
+        seat.y,
+        this.seatWidth,
+        this.seatHeight,
+        5,
+        true,
+        true,
+        gradient
+      );
 
       // Draw seat label
-      this.ctx.fillStyle = 'black';
-      this.ctx.fillText(seat.id, seat.x + 5, seat.y + 20);
+      this.ctx.fillStyle = 'white';
+      this.ctx.fillText(seat.id, seat.x + 5, seat.y + this.seatHeight - 10);
     });
 
     this.ctx.restore();
   }
 
-  // Helper function to draw rounded rectangles
   roundRect(
-    _ctx: any,
-    _x: any,
-    _y: any,
-    _width: any,
-    _height: any,
-    _radius: any,
-    _fill: any,
-    _stroke: any,
-    _fillStyle: any
+    ctx: any,
+    x: any,
+    y: any,
+    width: any,
+    height: any,
+    radius: any,
+    fill: any,
+    stroke: any,
+    fillStyle: any
   ) {
-    let ctx = _ctx;
-    let x = _x;
-    let y = _y;
-    let width = _width;
-    let height = _height;
-    let radius = _radius;
-    let fill = _fill;
-    let stroke = _stroke;
-    let fillStyle = _fillStyle;
     if (typeof stroke === 'undefined') {
       stroke = true;
     }
@@ -127,7 +148,7 @@ export class SeatSelectorComponent implements AfterViewInit {
       radius = { tl: radius, tr: radius, br: radius, bl: radius };
     } else {
       const defaultRadius = { tl: 0, tr: 0, br: 0, bl: 0 };
-      for (let side in defaultRadius) {
+      for (let side in radius) {
         // @ts-ignore
         radius[side] = radius[side] || defaultRadius[side];
       }
@@ -172,9 +193,9 @@ export class SeatSelectorComponent implements AfterViewInit {
     this.seats.forEach((seat) => {
       if (
         x > seat.x &&
-        x < seat.x + 30 &&
+        x < seat.x + this.seatWidth &&
         y > seat.y &&
-        y < seat.y + 30 &&
+        y < seat.y + this.seatHeight &&
         seat.status === 'available'
       ) {
         if (this.selectedSeats.has(seat.id)) {
@@ -204,9 +225,9 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseWheel(event: any) {
-    const zoomFactor = 0.02; // Further reduced zoom sensitivity
+    const zoomFactor = 0.02;
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
-    this.scale = Math.max(0.5, Math.min(newScale, 3)); // Constrain the zoom level
+    this.scale = Math.max(1, Math.min(newScale, 2));
     this.draw();
   }
 }
