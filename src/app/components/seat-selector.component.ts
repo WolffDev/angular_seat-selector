@@ -227,6 +227,7 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseDown(event: MouseEvent) {
+    console.log('mouse down', event);
     this.dragging = true;
     this.hideTooltip();
     this.lastX = event.offsetX;
@@ -263,6 +264,7 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseMove(event: MouseEvent) {
+    console.log('mouse move', this.dragging, event);
     if (this.dragging) {
       let deltaX = (event.offsetX - this.lastX) / this.scale;
       let deltaY = (event.offsetY - this.lastY) / this.scale;
@@ -275,15 +277,60 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseUp(event: MouseEvent) {
+    console.log('mouse up', event);
     this.dragging = false;
   }
 
   onMouseLeave() {
+    console.log('mouse leave', this.dragging);
     if (this.dragging) {
       this.dragging = false;
       this.resetCanvasPosition();
       this.draw();
     }
+  }
+
+  onTouchStart(event: TouchEvent) {
+    console.log('onTouchStart', event);
+    const touch = event.touches[0];
+    this.onMouseDown(this.touchToMouseEvent(touch));
+  }
+
+  onTouchMove(event: TouchEvent) {
+    console.log('onTouchMove', event);
+    const touch = event.touches[0];
+    this.onMouseMove(this.touchToMouseEvent(touch));
+  }
+
+  onTouchEnd(event: TouchEvent) {
+    console.log('onTouchEnd', event);
+    if (event.touches.length === 0) {
+      this.onMouseUp(this.touchToMouseEvent(event.changedTouches[0]));
+    }
+  }
+
+  onTouchCancel(event: TouchEvent) {
+    console.log('onTouchCancel', event);
+    if (event.touches.length === 0) {
+      this.onMouseLeave();
+    }
+  }
+
+  private touchToMouseEvent(touch: Touch): MouseEvent {
+    return {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      button: 0, // Left button
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      altKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+      bubbles: false,
+      cancelable: false,
+      // Include any other necessary properties here
+    } as MouseEvent;
   }
 
   resetCanvasPosition() {
