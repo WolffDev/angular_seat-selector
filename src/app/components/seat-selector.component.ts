@@ -55,9 +55,9 @@ export class SeatSelectorComponent implements AfterViewInit {
   private walkwaySpacing: number = 20; // additional space after every two rows
   private verticalPadding: number = 80; // padding from the top and bottom
 
-  private scale: number = 1.0;
+  private scale: number = 1.2;
   private originX: number = 60;
-  private originY: number = 60;
+  private originY: number = 20;
   private dragging: boolean = false;
   private lastX!: number;
   private lastY!: number;
@@ -288,9 +288,9 @@ export class SeatSelectorComponent implements AfterViewInit {
 
   resetCanvasPosition() {
     this.hideTooltip();
-    this.scale = 1.0;
+    this.scale = 1.2;
     this.originX = 60;
-    this.originY = 60;
+    this.originY = 20;
   }
 
   onMouseWheel(event: any) {
