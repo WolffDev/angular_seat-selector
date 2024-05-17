@@ -278,6 +278,21 @@ export class SeatSelectorComponent implements AfterViewInit {
     this.dragging = false;
   }
 
+  onMouseLeave() {
+    if (this.dragging) {
+      this.dragging = false;
+      this.resetCanvasPosition();
+      this.draw();
+    }
+  }
+
+  resetCanvasPosition() {
+    this.hideTooltip();
+    this.scale = 1.0;
+    this.originX = 60;
+    this.originY = 60;
+  }
+
   onMouseWheel(event: any) {
     const zoomFactor = 0.02;
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
