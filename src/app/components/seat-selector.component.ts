@@ -38,7 +38,8 @@ interface Seat {
   imports: [CommonModule],
 })
 export class SeatSelectorComponent implements AfterViewInit {
-  @ViewChild('seatCanvas') seatCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('seatCanvas', { static: true })
+  seatCanvas!: ElementRef<HTMLCanvasElement>;
 
   public currentTooltip: CurrentTooltip | null = null;
   public tooltipX: number = 0;
