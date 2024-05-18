@@ -1,5 +1,11 @@
-import { CommonModule, NgIf, NgStyle } from '@angular/common';
-import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  HostListener,
+} from '@angular/core';
 
 interface SeatOccupant {
   username: string;
@@ -228,7 +234,6 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseDown(event: MouseEvent) {
-    console.log('mouse down', event);
     this.dragging = true;
     this.hideTooltip();
     this.lastX = event.offsetX;
@@ -265,7 +270,6 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseMove(event: MouseEvent) {
-    console.log('mouse move', this.dragging, event);
     if (this.dragging) {
       let deltaX = (event.offsetX - this.lastX) / this.scale;
       let deltaY = (event.offsetY - this.lastY) / this.scale;
@@ -278,12 +282,10 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onMouseUp(event: MouseEvent) {
-    console.log('mouse up', event);
     this.dragging = false;
   }
 
   onMouseLeave() {
-    console.log('mouse leave', this.dragging);
     if (this.dragging) {
       this.dragging = false;
       this.resetCanvasPosition();
@@ -292,35 +294,38 @@ export class SeatSelectorComponent implements AfterViewInit {
   }
 
   onTouchStart(event: TouchEvent) {
-    console.log('onTouchStart', event);
+    event.preventDefault();
     const touch = event.touches[0];
     this.onMouseDown(this.touchToMouseEvent(touch));
   }
 
   onTouchMove(event: TouchEvent) {
-    console.log('onTouchMove', event);
+    event.preventDefault();
     const touch = event.touches[0];
     this.onMouseMove(this.touchToMouseEvent(touch));
   }
 
   onTouchEnd(event: TouchEvent) {
-    console.log('onTouchEnd', event);
+    event.preventDefault();
     if (event.touches.length === 0) {
       this.onMouseUp(this.touchToMouseEvent(event.changedTouches[0]));
     }
   }
 
   onTouchCancel(event: TouchEvent) {
-    console.log('onTouchCancel', event);
+    event.preventDefault();
     if (event.touches.length === 0) {
       this.onMouseLeave();
     }
   }
 
   private touchToMouseEvent(touch: Touch): MouseEvent {
+    const rect = this.seatCanvas.nativeElement.getBoundingClientRect();
     return {
       clientX: touch.clientX,
       clientY: touch.clientY,
+      offsetX: touch.clientX - rect.left,
+      offsetY: touch.clientY - rect.top,
       button: 0, // Left button
       preventDefault: () => {},
       stopPropagation: () => {},
@@ -341,7 +346,9 @@ export class SeatSelectorComponent implements AfterViewInit {
     this.originY = 20;
   }
 
+  @HostListener('wheel', ['$event'])
   onMouseWheel(event: any) {
+    event.preventDefault();
     const zoomFactor = 0.02;
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
     this.scale = Math.max(1, Math.min(newScale, 2));
