@@ -1,5 +1,5 @@
 <div class="flex relative flex-col">
-  <div class="flex items-center justify-center">
+  <div class="flex items-center justify-center mt-4">
     <canvas
       class="border border-gray-400"
       #seatCanvas
@@ -9,7 +9,7 @@
       (mousemove)="onMouseMove($event)"
       (mouseleave)="onMouseLeave()"
       (mouseup)="onMouseUp($event)"
-      (mousewheel)="onMouseWheel($event)"
+      (wheel)="onMouseWheel($event)"
       (touchstart)="onTouchStart($event)"
       (touchmove)="onTouchMove($event)"
       (touchend)="onTouchEnd($event)"

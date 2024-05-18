@@ -30,7 +30,8 @@ import { ResponsiveService } from '../services/responsive.service';
 export class SeatSelectorComponent implements OnInit, AfterViewInit {
   @ViewChild('seatCanvas', { static: true })
   public seatCanvas!: ElementRef<HTMLCanvasElement>;
-  public canvasWidth: number = window.innerWidth - 400;
+  public canvasWidth: number =
+    window.innerWidth - 400 > 900 ? 900 : window.innerWidth - 400;
   public canvasHeight: number = window.innerHeight - 200;
 
   public currentTooltip: CurrentTooltip | null = null;
@@ -49,7 +50,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   private verticalPadding: number = 80; // padding from the top and bottom
 
   private scale: number = 1.2;
-  private originX: number = 60;
+  private originX: number = 40;
   private originY: number = 20;
   private dragging: boolean = false;
   private lastX!: number;
@@ -401,11 +402,11 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   resetCanvasPosition() {
     this.hideTooltip();
     this.scale = 1.2;
-    this.originX = 60;
+    this.originX = 40;
     this.originY = 20;
   }
 
-  onMouseWheel(event: any) {
+  onMouseWheel(event: WheelEvent) {
     event.preventDefault();
     const zoomFactor = 0.02;
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
