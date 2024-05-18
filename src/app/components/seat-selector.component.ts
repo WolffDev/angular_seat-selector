@@ -5,25 +5,9 @@ import {
   ViewChild,
   AfterViewInit,
   HostListener,
+  OnInit,
 } from '@angular/core';
-
-interface SeatOccupant {
-  username: string;
-  name: string;
-}
-
-interface CurrentTooltip {
-  seat: string;
-  username: string;
-  name: string;
-}
-
-interface Seat {
-  id: string;
-  x: number;
-  y: number;
-  status: string;
-}
+import { ResponsiveService } from '../services/responsive.service';
 
 @Component({
   selector: 'app-seat-selector',
@@ -43,9 +27,11 @@ interface Seat {
   standalone: true,
   imports: [CommonModule],
 })
-export class SeatSelectorComponent implements AfterViewInit {
+export class SeatSelectorComponent implements OnInit, AfterViewInit {
   @ViewChild('seatCanvas', { static: true })
-  seatCanvas!: ElementRef<HTMLCanvasElement>;
+  public seatCanvas!: ElementRef<HTMLCanvasElement>;
+  public canvasWidth: number = window.innerWidth - 400;
+  public canvasHeight: number = window.innerHeight - 400;
 
   public currentTooltip: CurrentTooltip | null = null;
   public tooltipX: number = 0;
@@ -79,6 +65,28 @@ export class SeatSelectorComponent implements AfterViewInit {
   ]);
   // Example occupied seats
   private reservedSeats = new Set(['a3', 'b1', 'b2', 'f20', 'j10', 'a', 'g']); // Example reserved seats
+
+  // For pinch-to-zoom
+  private initialDistance: number | null = null;
+  private initialScale: number | null = null;
+
+  constructor(private responsiveService: ResponsiveService) {}
+
+  ngOnInit(): void {
+    this.responsiveService.isHandset$.subscribe((isHandset) => {
+      if (isHandset) {
+        this.canvasHeight = window.innerHeight - 150;
+        this.canvasWidth = window.innerWidth - 20; // Adjust width if necessary
+      }
+    });
+
+    this.responsiveService.isTablet$.subscribe((isTablet) => {
+      if (isTablet) {
+        this.canvasHeight = window.innerHeight - 150;
+        this.canvasWidth = window.innerWidth - 20; // Adjust width if necessary
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     this.ctx = this.seatCanvas.nativeElement.getContext(
@@ -295,19 +303,40 @@ export class SeatSelectorComponent implements AfterViewInit {
 
   onTouchStart(event: TouchEvent) {
     event.preventDefault();
-    const touch = event.touches[0];
-    this.onMouseDown(this.touchToMouseEvent(touch));
+
+    if (event.touches.length === 2) {
+      this.initialDistance = this.getDistance(
+        event.touches[0],
+        event.touches[1]
+      );
+      this.initialScale = this.scale;
+    } else if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      this.onMouseDown(this.touchToMouseEvent(touch));
+    }
   }
 
   onTouchMove(event: TouchEvent) {
     event.preventDefault();
-    const touch = event.touches[0];
-    this.onMouseMove(this.touchToMouseEvent(touch));
+
+    if (event.touches.length === 2) {
+      const newDistance = this.getDistance(event.touches[0], event.touches[1]);
+      const scaleChange = newDistance / (this.initialDistance as number);
+      this.scale = (this.initialScale as number) * scaleChange;
+      this.scale = Math.max(1, Math.min(this.scale, 2));
+      this.draw();
+    } else if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      this.onMouseMove(this.touchToMouseEvent(touch));
+    }
   }
 
   onTouchEnd(event: TouchEvent) {
     event.preventDefault();
+
     if (event.touches.length === 0) {
+      this.initialDistance = null;
+      this.initialScale = null;
       this.onMouseUp(this.touchToMouseEvent(event.changedTouches[0]));
     }
   }
@@ -315,8 +344,16 @@ export class SeatSelectorComponent implements AfterViewInit {
   onTouchCancel(event: TouchEvent) {
     event.preventDefault();
     if (event.touches.length === 0) {
+      this.initialDistance = null;
+      this.initialScale = null;
       this.onMouseLeave();
     }
+  }
+
+  private getDistance(touch1: Touch, touch2: Touch): number {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   private touchToMouseEvent(touch: Touch): MouseEvent {
@@ -378,4 +415,22 @@ export class SeatSelectorComponent implements AfterViewInit {
   hideTooltip() {
     this.currentTooltip = null;
   }
+}
+
+interface SeatOccupant {
+  username: string;
+  name: string;
+}
+
+interface CurrentTooltip {
+  seat: string;
+  username: string;
+  name: string;
+}
+
+interface Seat {
+  id: string;
+  x: number;
+  y: number;
+  status: string;
 }
