@@ -4,7 +4,6 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
-  HostListener,
   OnInit,
   inject,
 } from '@angular/core';
@@ -32,7 +31,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   @ViewChild('seatCanvas', { static: true })
   public seatCanvas!: ElementRef<HTMLCanvasElement>;
   public canvasWidth: number = window.innerWidth - 400;
-  public canvasHeight: number = window.innerHeight - 400;
+  public canvasHeight: number = window.innerHeight - 200;
 
   public currentTooltip: CurrentTooltip | null = null;
   public tooltipX: number = 0;
@@ -406,7 +405,6 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     this.originY = 20;
   }
 
-  @HostListener('wheel', ['$event'])
   onMouseWheel(event: any) {
     event.preventDefault();
     const zoomFactor = 0.02;
