@@ -6,6 +6,7 @@ import {
   AfterViewInit,
   HostListener,
   OnInit,
+  inject,
 } from '@angular/core';
 import { ResponsiveService } from '../services/responsive.service';
 
@@ -54,6 +55,8 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   private dragging: boolean = false;
   private lastX!: number;
   private lastY!: number;
+  private startX!: number;
+  private startY!: number;
   private maxNumberOfSeats = 20;
   private rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
   private occupiedSeats: Map<string, SeatOccupant> = new Map([
@@ -69,8 +72,9 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   // For pinch-to-zoom
   private initialDistance: number | null = null;
   private initialScale: number | null = null;
+  private dragThreshold: number = 5; // Threshold to differentiate between click and drag
 
-  constructor(private responsiveService: ResponsiveService) {}
+  private responsiveService = inject(ResponsiveService);
 
   ngOnInit(): void {
     this.responsiveService.isHandset$.subscribe((isHandset) => {
@@ -244,37 +248,8 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   onMouseDown(event: MouseEvent) {
     this.dragging = true;
     this.hideTooltip();
-    this.lastX = event.offsetX;
-    this.lastY = event.offsetY;
-
-    const rect = this.seatCanvas.nativeElement.getBoundingClientRect();
-    const scaleX = this.seatCanvas.nativeElement.width / rect.width;
-    const scaleY = this.seatCanvas.nativeElement.height / rect.height;
-    const x =
-      ((event.clientX - rect.left) * scaleX) / this.scale - this.originX;
-    const y = ((event.clientY - rect.top) * scaleY) / this.scale - this.originY;
-
-    this.seats.forEach((seat) => {
-      if (
-        x > seat.x &&
-        x < seat.x + this.seatWidth &&
-        y > seat.y &&
-        y < seat.y + this.seatHeight
-      ) {
-        console.log(seat);
-        if (seat.status === 'available') {
-          if (this.selectedSeats.has(seat.id)) {
-            this.selectedSeats.delete(seat.id);
-          } else if (this.selectedSeats.size < this.maxSelections) {
-            this.selectedSeats.set(seat.id, seat);
-          }
-        }
-        if (seat.status === 'occupied') {
-          this.showTooltip(seat);
-        }
-        this.draw();
-      }
-    });
+    this.lastX = this.startX = event.offsetX;
+    this.lastY = this.startY = event.offsetY;
   }
 
   onMouseMove(event: MouseEvent) {
@@ -291,6 +266,12 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
 
   onMouseUp(event: MouseEvent) {
     this.dragging = false;
+    const deltaX = event.offsetX - this.startX;
+    const deltaY = event.offsetY - this.startY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance < this.dragThreshold) {
+      this.handleSeatClick(event);
+    }
   }
 
   onMouseLeave() {
@@ -312,6 +293,8 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
       this.initialScale = this.scale;
     } else if (event.touches.length === 1) {
       const touch = event.touches[0];
+      this.startX = touch.clientX;
+      this.startY = touch.clientY;
       this.onMouseDown(this.touchToMouseEvent(touch));
     }
   }
@@ -337,12 +320,21 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     if (event.touches.length === 0) {
       this.initialDistance = null;
       this.initialScale = null;
-      this.onMouseUp(this.touchToMouseEvent(event.changedTouches[0]));
+
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - this.startX;
+      const deltaY = touch.clientY - this.startY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distance < this.dragThreshold) {
+        this.handleSeatClick(this.touchToMouseEvent(touch));
+      }
+      this.onMouseUp(this.touchToMouseEvent(touch));
     }
   }
 
   onTouchCancel(event: TouchEvent) {
     event.preventDefault();
+
     if (event.touches.length === 0) {
       this.initialDistance = null;
       this.initialScale = null;
@@ -374,6 +366,37 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
       cancelable: false,
       // Include any other necessary properties here
     } as MouseEvent;
+  }
+
+  private handleSeatClick(event: MouseEvent) {
+    const rect = this.seatCanvas.nativeElement.getBoundingClientRect();
+    const scaleX = this.seatCanvas.nativeElement.width / rect.width;
+    const scaleY = this.seatCanvas.nativeElement.height / rect.height;
+    const x =
+      ((event.clientX - rect.left) * scaleX) / this.scale - this.originX;
+    const y = ((event.clientY - rect.top) * scaleY) / this.scale - this.originY;
+
+    this.seats.forEach((seat) => {
+      if (
+        x > seat.x &&
+        x < seat.x + this.seatWidth &&
+        y > seat.y &&
+        y < seat.y + this.seatHeight
+      ) {
+        console.log(seat);
+        if (seat.status === 'available') {
+          if (this.selectedSeats.has(seat.id)) {
+            this.selectedSeats.delete(seat.id);
+          } else if (this.selectedSeats.size < this.maxSelections) {
+            this.selectedSeats.set(seat.id, seat);
+          }
+        }
+        if (seat.status === 'occupied') {
+          this.showTooltip(seat);
+        }
+        this.draw();
+      }
+    });
   }
 
   resetCanvasPosition() {
