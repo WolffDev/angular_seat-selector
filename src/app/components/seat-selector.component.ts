@@ -58,7 +58,22 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   private startX!: number;
   private startY!: number;
   private maxNumberOfSeats = 20;
-  private rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+  private rows = [
+    'a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+    'g',
+    'h',
+    'i',
+    'j',
+    'k',
+    'l',
+    'm',
+    'n',
+  ];
   private occupiedSeats: Map<string, SeatOccupant> = new Map([
     ['a1', { username: 'user1', name: 'User 1' }],
     ['a2', { username: 'user2', name: 'User 2' }],
