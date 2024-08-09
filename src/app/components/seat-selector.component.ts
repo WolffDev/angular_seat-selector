@@ -49,7 +49,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   private walkwaySpacing: number = 20; // additional space after every two rows
   private verticalPadding: number = 80; // padding from the top and bottom
 
-  private scale: number = 1.2;
+  private scale: number = 1.0;
   private originX: number = 40;
   private originY: number = 20;
   private dragging: boolean = false;
@@ -357,6 +357,45 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     }
   }
 
+  resetCanvasPosition() {
+    this.hideTooltip();
+    this.scale = 1.2;
+    this.originX = 40;
+    this.originY = 20;
+  }
+
+  onMouseWheel(event: WheelEvent) {
+    event.preventDefault();
+    const zoomFactor = 0.02;
+    const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
+    this.scale = Math.max(1, Math.min(newScale, 2));
+    this.draw();
+  }
+
+  showTooltip(seat: any) {
+    const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
+    console.log(occupant);
+    this.currentTooltip = {
+      seat: seat.id,
+      username: occupant.username,
+      name: occupant.name,
+    };
+
+    const canvasRect = this.seatCanvas.nativeElement.getBoundingClientRect();
+    // Calculate the tooltip coordinates, making sure to apply both translation and scaling
+    this.tooltipX = (seat.x + this.originX) * this.scale + canvasRect.left;
+    this.tooltipY =
+      (seat.y + this.seatHeight + this.originY) * this.scale + canvasRect.top;
+
+    // Adjust the tooltip position slightly away from the seat for better visibility
+    this.tooltipX += 20; // 20px offset for x coordinate
+    this.tooltipY += 20; // 20px offset for y coordinate
+  }
+
+  hideTooltip() {
+    this.currentTooltip = null;
+  }
+
   private getDistance(touch1: Touch, touch2: Touch): number {
     const dx = touch2.clientX - touch1.clientX;
     const dy = touch2.clientY - touch1.clientY;
@@ -398,12 +437,13 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
         y > seat.y &&
         y < seat.y + this.seatHeight
       ) {
-        console.log(seat);
         if (seat.status === 'available') {
           if (this.selectedSeats.has(seat.id)) {
             this.selectedSeats.delete(seat.id);
           } else if (this.selectedSeats.size < this.maxSelections) {
-            this.selectedSeats.set(seat.id, seat);
+            if (this.isAdjacent(seat) || this.canStartNewBlock(seat)) {
+              this.selectedSeats.set(seat.id, seat);
+            }
           }
         }
         if (seat.status === 'occupied') {
@@ -414,43 +454,44 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     });
   }
 
-  resetCanvasPosition() {
-    this.hideTooltip();
-    this.scale = 1.2;
-    this.originX = 40;
-    this.originY = 20;
+  private isAdjacent(seat: Seat): boolean {
+    const seatRow = seat.id[0];
+    const seatNumber = parseInt(seat.id.slice(1), 10);
+
+    for (let selectedSeat of this.selectedSeats.values()) {
+      const selectedSeatRow = selectedSeat.id[0];
+      const selectedSeatNumber = parseInt(selectedSeat.id.slice(1), 10);
+
+      const isNextTo =
+        (seatRow === selectedSeatRow &&
+          Math.abs(seatNumber - selectedSeatNumber) === 1) || // Check left/right
+        (Math.abs(seatRow.charCodeAt(0) - selectedSeatRow.charCodeAt(0)) ===
+          1 &&
+          seatNumber === selectedSeatNumber); // Check up/down
+
+      if (isNextTo) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
-  onMouseWheel(event: WheelEvent) {
-    event.preventDefault();
-    const zoomFactor = 0.02;
-    const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
-    this.scale = Math.max(1, Math.min(newScale, 2));
-    this.draw();
-  }
+  private canStartNewBlock(seat: Seat): boolean {
+    // If no seats are selected, any available seat can start a new block
+    if (this.selectedSeats.size === 0) {
+      return seat.status === 'available';
+    }
 
-  showTooltip(seat: any) {
-    const occupant = this.occupiedSeats.get(seat.id) as SeatOccupant;
-    console.log(occupant);
-    this.currentTooltip = {
-      seat: seat.id,
-      username: occupant.username,
-      name: occupant.name,
-    };
+    // Check if there are any adjacent seats that are available
+    for (let selectedSeat of this.selectedSeats.values()) {
+      if (this.isAdjacent(selectedSeat)) {
+        return false;
+      }
+    }
 
-    const canvasRect = this.seatCanvas.nativeElement.getBoundingClientRect();
-    // Calculate the tooltip coordinates, making sure to apply both translation and scaling
-    this.tooltipX = (seat.x + this.originX) * this.scale + canvasRect.left;
-    this.tooltipY =
-      (seat.y + this.seatHeight + this.originY) * this.scale + canvasRect.top;
-
-    // Adjust the tooltip position slightly away from the seat for better visibility
-    this.tooltipX += 20; // 20px offset for x coordinate
-    this.tooltipY += 20; // 20px offset for y coordinate
-  }
-
-  hideTooltip() {
-    this.currentTooltip = null;
+    // If no adjacent seats are available, allow starting a new block
+    return seat.status === 'available';
   }
 }
 
