@@ -441,7 +441,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
           if (this.selectedSeats.has(seat.id)) {
             this.selectedSeats.delete(seat.id);
           } else if (this.selectedSeats.size < this.maxSelections) {
-            if (this.isAdjacent(seat) || this.canStartNewBlock(seat)) {
+            if (this.isAdjacent(seat) || this.canStartNewBlock()) {
               this.selectedSeats.set(seat.id, seat);
             }
           }
@@ -477,21 +477,27 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     return false;
   }
 
-  private canStartNewBlock(seat: Seat): boolean {
+  private canStartNewBlock(): boolean {
     // If no seats are selected, any available seat can start a new block
     if (this.selectedSeats.size === 0) {
-      return seat.status === 'available';
+      return true;
     }
 
-    // Check if there are any adjacent seats that are available
+    // If any currently selected seat has an adjacent available seat, a new block cannot be started
     for (let selectedSeat of this.selectedSeats.values()) {
-      if (this.isAdjacent(selectedSeat)) {
-        return false;
+      for (let seat of this.seats) {
+        if (
+          this.isAdjacent(seat) &&
+          seat.status === 'available' &&
+          !this.selectedSeats.has(seat.id)
+        ) {
+          return false;
+        }
       }
     }
 
-    // If no adjacent seats are available, allow starting a new block
-    return seat.status === 'available';
+    // If no adjacent available seats to any of the selected seats, allow starting a new block
+    return true;
   }
 }
 
