@@ -122,10 +122,34 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
 
       // Correctly applying walkway space after every two rows
       if (index > 0 && index % 2 === 1) {
-        // Apply after every second row
         additionalY += this.walkwaySpacing;
       }
 
+      // Add vertical space before the boxes
+      if (row === 'h') {
+        additionalY += this.rowSpacing; // Extra space before the boxes
+        yPosition += this.rowSpacing;
+
+        // Large box on the left (spanning I01 to I10 across rows H and I)
+        this.seats.push({
+          id: 'leftBox',
+          x: 0,
+          y: yPosition,
+          width: this.seatWidth * 10,
+          height: this.rowSpacing * 2, // Spanning 2 rows
+        });
+
+        // Large box on the right (spanning I11 to I20 across rows H and I)
+        this.seats.push({
+          id: 'rightBox',
+          x: this.seatWidth * 10 + this.verticalPadding,
+          y: yPosition,
+          width: this.seatWidth * 10,
+          height: this.rowSpacing * 2, // Spanning 2 rows
+        });
+      }
+
+      // Add seats for the current row
       for (let i = 1; i <= this.maxNumberOfSeats; i++) {
         const seatId = `${row}${i}`;
         let seatStatus = 'available';
@@ -135,15 +159,13 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
           seatStatus = 'reserved';
         }
 
-        // Check if the whole row is reserved by checking if the row letter is in the Set(), i.e. ['a'] by it self
         if (this.reservedSeats.has(row)) {
           seatStatus = 'reserved';
         }
 
-        // Determine the X coordinate with an added gap after the 10th seat
         let xPosition = (i - 1) * this.seatWidth;
         if (i > 10) {
-          xPosition += this.verticalPadding; // Adding an 80 pixel gap after the 10th seat
+          xPosition += this.verticalPadding; // Adding an 80-pixel gap after the 10th seat
         }
 
         this.seats.push({
@@ -152,6 +174,11 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
           y: yPosition,
           status: seatStatus,
         });
+      }
+
+      // Skip over row 'I' since it's covered by the boxes
+      if (row === 'h') {
+        additionalY += this.rowSpacing; // Move down by one row height to skip row 'I'
       }
     });
   }
@@ -168,6 +195,37 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
     this.ctx.translate(this.originX, this.originY);
 
     this.seats.forEach((seat) => {
+      this.ctx.fillStyle = 'white';
+      this.ctx.font = '12px Arial';
+      this.ctx.textAlign = 'left';
+
+      if (seat.id === 'leftBox' || seat.id === 'rightBox') {
+        // Draw the large boxes as grey rectangles
+        this.ctx.fillStyle = 'lightgrey';
+        this.ctx.fillRect(seat.x, seat.y, seat.width, seat.height);
+
+        // Add labels to the boxes
+        this.ctx.fillStyle = 'black';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+
+        if (seat.id === 'leftBox') {
+          this.ctx.fillText(
+            'DUKES STAFF',
+            seat.x + seat.width / 2,
+            seat.y + seat.height / 2 + 10
+          );
+        } else if (seat.id === 'rightBox') {
+          this.ctx.fillText(
+            'SCENE',
+            seat.x + seat.width / 2,
+            seat.y + seat.height / 2 + 10
+          );
+        }
+
+        return; // Skip the rest of the seat drawing logic
+      }
+
       const gradient = this.ctx.createLinearGradient(
         seat.x,
         seat.y,
@@ -188,7 +246,6 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
         gradient.addColorStop(1, 'green');
       }
 
-      // Draw the seat with a rounded rectangle
       this.roundRect(
         this.ctx,
         seat.x,
@@ -201,7 +258,6 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
         gradient
       );
 
-      // Draw seat label
       this.ctx.fillStyle = 'white';
       this.ctx.fillText(seat.id, seat.x + 5, seat.y + this.seatHeight - 10);
     });
@@ -430,28 +486,43 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
       ((event.clientX - rect.left) * scaleX) / this.scale - this.originX;
     const y = ((event.clientY - rect.top) * scaleY) / this.scale - this.originY;
 
-    this.seats.forEach((seat) => {
+    let clickedSeat: Seat | null = null;
+
+    // Iterate through seats to find if the click is inside a seat
+    for (const seat of this.seats) {
+      if (seat.id === 'leftBox' || seat.id === 'rightBox') {
+        continue; // Skip non-selectable boxes
+      }
+
+      // Adjust xPosition for seats after the box on the right
+      const seatX = seat.x;
+      const seatY = seat.y;
+
       if (
-        x > seat.x &&
-        x < seat.x + this.seatWidth &&
-        y > seat.y &&
-        y < seat.y + this.seatHeight
+        x >= seatX &&
+        x <= seatX + this.seatWidth &&
+        y >= seatY &&
+        y <= seatY + this.seatHeight
       ) {
-        if (seat.status === 'available') {
-          if (this.selectedSeats.has(seat.id)) {
-            this.selectedSeats.delete(seat.id);
-          } else if (this.selectedSeats.size < this.maxSelections) {
-            if (this.isAdjacent(seat) || this.canStartNewBlock()) {
-              this.selectedSeats.set(seat.id, seat);
-            }
+        clickedSeat = seat;
+        break;
+      }
+    }
+
+    if (clickedSeat) {
+      if (clickedSeat.status === 'available') {
+        if (this.selectedSeats.has(clickedSeat.id)) {
+          this.selectedSeats.delete(clickedSeat.id);
+        } else if (this.selectedSeats.size < this.maxSelections) {
+          if (this.isAdjacent(clickedSeat) || this.canStartNewBlock()) {
+            this.selectedSeats.set(clickedSeat.id, clickedSeat);
           }
         }
-        if (seat.status === 'occupied') {
-          this.showTooltip(seat);
-        }
-        this.draw();
+      } else if (clickedSeat.status === 'occupied') {
+        this.showTooltip(clickedSeat);
       }
-    });
+      this.draw();
+    }
   }
 
   private isAdjacent(seat: Seat): boolean {
