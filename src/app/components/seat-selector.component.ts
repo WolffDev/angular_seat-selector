@@ -49,7 +49,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
   private walkwaySpacing: number = 20; // additional space after every two rows
   private verticalPadding: number = 80; // padding from the top and bottom
 
-  private scale: number = 1.0;
+  private scale: number = 1.2;
   private originX: number = 40;
   private originY: number = 20;
   private dragging: boolean = false;
@@ -422,7 +422,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
 
   onMouseWheel(event: WheelEvent) {
     event.preventDefault();
-    const zoomFactor = 0.02;
+    const zoomFactor = 0.04;
     const newScale = this.scale + (event.deltaY > 0 ? -zoomFactor : zoomFactor);
     this.scale = Math.max(1, Math.min(newScale, 2));
     this.draw();
