@@ -126,7 +126,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
       }
 
       // Add vertical space before the boxes
-      if (row === 'h') {
+      if (row === 'i') {
         additionalY += this.rowSpacing; // Extra space before the boxes
         yPosition += this.rowSpacing;
 
@@ -134,7 +134,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
         this.seats.push({
           id: 'leftBox',
           x: 0,
-          y: yPosition,
+          y: yPosition - this.rowSpacing * 2.4, // Start from row H
           width: this.seatWidth * 10,
           height: this.rowSpacing * 2, // Spanning 2 rows
         });
@@ -143,7 +143,7 @@ export class SeatSelectorComponent implements OnInit, AfterViewInit {
         this.seats.push({
           id: 'rightBox',
           x: this.seatWidth * 10 + this.verticalPadding,
-          y: yPosition,
+          y: yPosition - this.rowSpacing * 2.4, // Start from row H
           width: this.seatWidth * 10,
           height: this.rowSpacing * 2, // Spanning 2 rows
         });
